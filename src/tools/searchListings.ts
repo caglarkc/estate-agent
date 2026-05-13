@@ -1,5 +1,5 @@
 import listings from "@/data/mockListings.json";
-import type { Property } from "@/types/index";
+import type { Property, SearchResult } from "@/types/index";
 
 interface Intent {
   intent_type: string;
@@ -14,7 +14,32 @@ interface Intent {
 
 const properties = listings as Property[];
 
-export function searchListings(intent: Intent): Property | null {
+function matchesKeywords(property: Property, keywords: string[]): boolean {
+  if (keywords.length === 0) {
+    return true;
+  }
+
+  const searchable = [
+    property.title,
+    property.city,
+    property.type,
+    property.bedrooms.toString(),
+  ]
+    .join(" ")
+    .toLowerCase();
+
+  return keywords.some((keyword) => searchable.includes(keyword.toLowerCase()));
+}
+
+function hasSharedCity(property: Property, primary: Property): boolean {
+  return property.city.toLowerCase() === primary.city.toLowerCase();
+}
+
+function hasSharedType(property: Property, primary: Property): boolean {
+  return property.type === primary.type;
+}
+
+export function searchListings(intent: Intent): SearchResult {
   let matches = properties;
 
   if (intent.city !== null) {
@@ -40,5 +65,29 @@ export function searchListings(intent: Intent): Property | null {
     );
   }
 
-  return matches[0] ?? null;
+  matches = matches.filter((property) =>
+    matchesKeywords(property, intent.property_keywords),
+  );
+
+  const primary = matches[0] ?? null;
+
+  if (!primary) {
+    return {
+      primary: null,
+      alternatives: [],
+    };
+  }
+
+  const alternatives = properties
+    .filter((property) => property.id !== primary.id)
+    .filter((property) => property.status === "available")
+    .filter(
+      (property) => hasSharedCity(property, primary) || hasSharedType(property, primary),
+    )
+    .slice(0, 3);
+
+  return {
+    primary,
+    alternatives,
+  };
 }

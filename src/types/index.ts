@@ -24,6 +24,11 @@ export interface CustomerMessage {
   sentimentSignal: "positive" | "neutral" | "fading";
 }
 
+export interface SearchResult {
+  primary: Property | null;
+  alternatives: Property[];
+}
+
 export interface LeadScore {
   score: "HOT" | "WARM" | "COLD";
   signals: string[];
@@ -49,5 +54,6 @@ export interface AgentState {
   trace: TraceStep[];
   leadScore: LeadScore | null;
   matchedProperty: Property | null;
+  alternatives: Property[];
   followUpNote: string | null;
 }

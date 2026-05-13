@@ -175,9 +175,12 @@ export async function runAgent(
     const plan = getPlan(intent.intent_type);
 
     let matchedProperty: AgentState["matchedProperty"] = null;
+    let alternatives: AgentState["alternatives"] = [];
     if (plan.needsPropertySearch) {
       const searchListings = getTool("searchListings");
-      matchedProperty = searchListings(intent);
+      const searchResult = searchListings(intent);
+      matchedProperty = searchResult.primary;
+      alternatives = searchResult.alternatives;
       onTrace(
         createTraceStep(
           "Property matched",
@@ -266,6 +269,7 @@ export async function runAgent(
       trace: [],
       leadScore,
       matchedProperty,
+      alternatives,
       followUpNote: null,
     };
   } catch (error) {

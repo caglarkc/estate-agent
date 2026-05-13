@@ -19,6 +19,7 @@ const initialAgentState: AgentState = {
   trace: [],
   leadScore: null,
   matchedProperty: null,
+  alternatives: [],
   followUpNote: null,
 };
 
@@ -180,6 +181,7 @@ function App() {
             onDraftChange={handleDraftChange}
             loading={loading}
             status={agentState.status}
+            alternatives={agentState.alternatives}
           />
           <div className="mt-4">
             <ApprovalButtons

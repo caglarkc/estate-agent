@@ -1,4 +1,5 @@
-import type { ApprovalStatus, CustomerMessage } from "@/types/index";
+import { AlternativesPanel } from "@/components/AlternativesPanel";
+import type { ApprovalStatus, CustomerMessage, Property } from "@/types/index";
 
 interface AgentChatProps {
   selectedMessage: CustomerMessage | null;
@@ -6,6 +7,7 @@ interface AgentChatProps {
   onDraftChange: (v: string) => void;
   loading: boolean;
   status: ApprovalStatus;
+  alternatives: Property[];
 }
 
 export function AgentChat({
@@ -14,6 +16,7 @@ export function AgentChat({
   onDraftChange,
   loading,
   status,
+  alternatives,
 }: AgentChatProps) {
   if (!selectedMessage) {
     return (
@@ -64,6 +67,7 @@ export function AgentChat({
             placeholder="AI draft will appear here..."
             className="h-40 w-full resize-none rounded border border-slate-600 bg-slate-800 p-3 text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
           />
+          <AlternativesPanel alternatives={alternatives} />
         </>
       )}
     </div>
