@@ -74,6 +74,16 @@ function requireText(text: string | null | undefined, provider: LLMProvider) {
   return text;
 }
 
+function wait(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, ms);
+  });
+}
+
+function isRetryableStatus(status: number): boolean {
+  return status === 429 || status === 503;
+}
+
 export async function callLLM(system: string, user: string): Promise<string> {
   const provider = getProvider();
 
@@ -131,19 +141,26 @@ export async function callLLM(system: string, user: string): Promise<string> {
   if (provider === "gemini") {
     const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
     const model = import.meta.env.VITE_GEMINI_MODEL ?? "gemini-2.0-flash";
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+    const request = () =>
+      fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            system_instruction: { parts: [{ text: system }] },
+            contents: [{ role: "user", parts: [{ text: user }] }],
+          }),
         },
-        body: JSON.stringify({
-          system_instruction: { parts: [{ text: system }] },
-          contents: [{ role: "user", parts: [{ text: user }] }],
-        }),
-      },
-    );
+      );
+    let response = await request();
+
+    for (let attempt = 1; !response.ok && isRetryableStatus(response.status) && attempt <= 2; attempt += 1) {
+      await wait(attempt * 1000);
+      response = await request();
+    }
 
     if (!response.ok) {
       await readFailure(provider, response);
