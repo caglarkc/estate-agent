@@ -89,7 +89,7 @@ function isIntent(value: unknown): value is Intent {
   );
 }
 
-async function extractIntent(messageText: string): Promise<Intent> {
+export async function extractIntent(messageText: string): Promise<Intent> {
   const system =
     "Extract the customer intent from the message as JSON. Think step by step before concluding. Return ONLY valid JSON, no explanation.";
   const user = `${messageText}\n\nReturn JSON with these exact keys: intent_type (one of: availability|pricing|viewing|application_status|general), property_keywords (string[]), city (string|null), urgency (boolean), specific_date (string|null), pet (boolean), furnished (boolean|null), bedrooms (number|null), reasoning (string)`;
@@ -127,7 +127,7 @@ function isSelfReviewResult(value: unknown): value is SelfReviewResult {
   );
 }
 
-async function selfReviewDraft(
+export async function selfReviewDraft(
   messageText: string,
   matchedProperty: AgentState["matchedProperty"],
   rawDraft: string,
