@@ -1,14 +1,17 @@
 import { approvalGate } from "@/agent/approvalGate";
 import { runAgent } from "@/agent/agentController";
+import { startProactiveEngine } from "@/agent/proactiveEngine";
 import { AgentChat } from "@/components/AgentChat";
 import { ApprovalButtons } from "@/components/ApprovalButtons";
+import { InsightsPanel } from "@/components/InsightsPanel";
 import { LeadScore } from "@/components/LeadScore";
 import { MessagePanel } from "@/components/MessagePanel";
 import { PropertyCard } from "@/components/PropertyCard";
 import { TracePanel } from "@/components/TracePanel";
 import { mockMessages } from "@/data/mockMessages";
+import { callLLM } from "@/lib/llmClient";
 import type { AgentState, CustomerMessage, TraceStep } from "@/types/index";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const initialAgentState: AgentState = {
   status: "idle",
@@ -19,6 +22,12 @@ const initialAgentState: AgentState = {
   followUpNote: null,
 };
 
+interface ProcessedMessage {
+  sender: string;
+  status: string;
+  processedAt: number;
+}
+
 function App() {
   const [agentState, setAgentState] =
     useState<AgentState>(initialAgentState);
@@ -26,6 +35,28 @@ function App() {
   const [selectedMessage, setSelectedMessage] =
     useState<CustomerMessage | null>(null);
   const [loading, setLoading] = useState(false);
+  const [processedMessages, setProcessedMessages] = useState<
+    ProcessedMessage[]
+  >([]);
+  const processedMessagesRef = useRef<ProcessedMessage[]>([]);
+  const [insights, setInsights] = useState<string[]>([]);
+  const [summary, setSummary] = useState<string | null>(null);
+  const [summaryLoading, setSummaryLoading] = useState(false);
+
+  useEffect(() => {
+    processedMessagesRef.current = processedMessages;
+  }, [processedMessages]);
+
+  useEffect(() => {
+    return startProactiveEngine(
+      () => processedMessagesRef.current,
+      (insight) => {
+        setInsights((prev) =>
+          prev.includes(insight) ? prev : [...prev, insight],
+        );
+      },
+    );
+  }, []);
 
   const processMessage = async (message: CustomerMessage) => {
     setTrace([]);
@@ -37,6 +68,14 @@ function App() {
         setTrace((prev) => [...prev, step]);
       });
       setAgentState(nextState);
+      setProcessedMessages((prev) => [
+        ...prev,
+        {
+          sender: message.sender,
+          status: "pending",
+          processedAt: Date.now(),
+        },
+      ]);
     } catch {
       setAgentState(initialAgentState);
     } finally {
@@ -59,6 +98,15 @@ function App() {
         setAgentState((state) => ({ ...state, followUpNote: note }));
       });
       setAgentState(nextState);
+      if (selectedMessage) {
+        setProcessedMessages((prev) =>
+          prev.map((message) =>
+            message.sender === selectedMessage.sender
+              ? { ...message, status: "approved" }
+              : message,
+          ),
+        );
+      }
     } catch (error) {
       const detail = error instanceof Error ? error.message : "Unknown error";
       setTrace((prev) => [
@@ -75,6 +123,15 @@ function App() {
 
   const handleEdit = () => {
     setAgentState((state) => approvalGate.edit(state, state.draft));
+    if (selectedMessage) {
+      setProcessedMessages((prev) =>
+        prev.map((message) =>
+          message.sender === selectedMessage.sender
+            ? { ...message, status: "edited" }
+            : message,
+        ),
+      );
+    }
   };
 
   const handleRegenerate = async () => {
@@ -84,6 +141,25 @@ function App() {
 
     setAgentState((state) => approvalGate.regenerate(state));
     await processMessage(selectedMessage);
+  };
+
+  const handleGenerateSummary = async () => {
+    setSummaryLoading(true);
+
+    try {
+      const result = await callLLM(
+        "You are an estate agent manager. Summarize today's leads concisely.",
+        `${JSON.stringify(
+          processedMessages,
+        )}\n\nGenerate 4 bullet point summary: messages processed, HOT leads, overdue follow-ups, recommended action.`,
+      );
+      setSummary(result);
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : "Unknown error";
+      setSummary(`Summary generation failed: ${detail}`);
+    } finally {
+      setSummaryLoading(false);
+    }
   };
 
   return (
@@ -124,6 +200,12 @@ function App() {
       <aside className="flex h-screen w-1/4 flex-col gap-4 overflow-y-auto p-4">
         <PropertyCard property={agentState.matchedProperty} />
         <LeadScore leadScore={agentState.leadScore} />
+        <InsightsPanel
+          insights={insights}
+          onGenerateSummary={handleGenerateSummary}
+          summaryLoading={summaryLoading}
+          summary={summary}
+        />
       </aside>
     </main>
   );
