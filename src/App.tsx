@@ -94,19 +94,18 @@ function App() {
 
   const handleApprove = async () => {
     try {
+      let followUpNote: string | null = null;
       const nextState = await approvalGate.approve(agentState, (note) => {
-        setAgentState((state) => ({ ...state, followUpNote: note }));
+        followUpNote = note;
       });
-      setAgentState(nextState);
-      if (selectedMessage) {
-        setProcessedMessages((prev) =>
-          prev.map((message) =>
-            message.sender === selectedMessage.sender
-              ? { ...message, status: "approved" }
-              : message,
-          ),
-        );
-      }
+      setAgentState({ ...nextState, followUpNote });
+      setProcessedMessages((prev) =>
+        prev.map((message) =>
+          message.sender === selectedMessage?.sender
+            ? { ...message, status: "approved" }
+            : message,
+        ),
+      );
     } catch (error) {
       const detail = error instanceof Error ? error.message : "Unknown error";
       setTrace((prev) => [

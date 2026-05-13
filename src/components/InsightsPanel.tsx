@@ -13,7 +13,7 @@ export function InsightsPanel({
   summaryLoading,
   summary,
 }: InsightsPanelProps) {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(true);
 
   return (
     <section className="rounded bg-slate-800 p-4">
@@ -25,16 +25,21 @@ export function InsightsPanel({
         <span className="text-sm uppercase tracking-wide text-slate-400">
           Insights
         </span>
-        {insights.length > 0 ? (
-          <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
-        ) : null}
+        <span className="flex items-center gap-2">
+          {insights.length > 0 ? (
+            <span className="h-2 w-2 animate-pulse rounded-full bg-amber-500" />
+          ) : null}
+          <span className="text-xs text-slate-400">
+            {isOpen ? "▲" : "▼"}
+          </span>
+        </span>
       </button>
 
       {isOpen ? (
         <div className="mt-4">
           {insights.length === 0 ? (
             <p className="text-sm italic text-slate-400">
-              No proactive insights yet.
+              No insights yet — process a message to begin.
             </p>
           ) : (
             <div className="space-y-2">

@@ -50,11 +50,7 @@ export function TracePanel({ trace }: TracePanelProps) {
       ) : (
         <div className="mt-3">
           {trace.map((step, index) => (
-            <TraceRow
-              key={step.id}
-              step={step}
-              index={index}
-            />
+            <TraceRow key={step.id} step={step} index={index} />
           ))}
         </div>
       )}
@@ -66,22 +62,21 @@ function TraceRow({ step, index }: { step: TraceStep; index: number }) {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    const frame = requestAnimationFrame(() => setVisible(true));
+    const timer = setTimeout(() => setVisible(true), index * 120);
 
-    return () => cancelAnimationFrame(frame);
-  }, []);
+    return () => clearTimeout(timer);
+  }, [index]);
 
   return (
     <div
-      style={{ transitionDelay: `${index * 150}ms` }}
       className={`border-b border-slate-700 py-1 text-xs text-slate-300 transition-opacity duration-300 ${
         visible ? "opacity-100" : "opacity-0"
       }`}
     >
       <span className="mr-2">{getTraceIcon(step.step)}</span>
-      <span>{step.step}</span>
+      <span className="font-medium">{step.step}</span>
       <span className="px-1 text-slate-500">—</span>
-      <span>{step.detail}</span>
+      <span className="text-slate-400">{step.detail}</span>
     </div>
   );
 }
