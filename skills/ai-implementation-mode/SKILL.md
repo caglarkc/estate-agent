@@ -80,7 +80,62 @@ const text = data.content[0].text;
 1. Özet → 4 başlıklı ön analiz
 2. Proje yapısını kontrol et (aşağıdaki referans haritadan)
 3. Kodu uygula
-4. Final teslim (zorunlu format)
+4. Git commit + push (zorunlu — aşağıya bak)
+5. Final teslim (zorunlu format)
+
+---
+
+## Git Commit & Push (Her Faz Sonunda Zorunlu)
+
+Kod yazımı tamamlandıktan **hemen sonra**, teslim çıktısından önce şu adımları çalıştır:
+
+### 1. Staged dosyaları seç (spesifik — `git add .` kullanma)
+```bash
+git -C /home/caglarkc/Desktop/Github/all-agentics/estate-agent add <değişen dosyalar>
+```
+`.env` ve `node_modules/` kesinlikle ekleme. Sadece src/, skills/, README.md, .env.example, config dosyaları.
+
+### 2. Commit mesajı formatı
+```
+feat(faz-N): <ne yapıldı — tek cümle, Türkçe>
+
+- <değişen dosya 1>: <ne değişti>
+- <değişen dosya 2>: <ne değişti>
+- <yeni dosya>: <ne eklendi>
+
+Stack: React + Vite + TypeScript + Tailwind
+```
+
+Örnekler:
+```
+feat(faz-2): tool sistemi ve llmClient adaptörü eklendi
+
+- src/lib/llmClient.ts: provider-agnostic callLLM fonksiyonu (anthropic/openai/ollama)
+- src/tools/draftReply.ts: fetch → callLLM ile güncellendi
+- src/agent/toolRegistry.ts: 5 tool map'i oluşturuldu
+```
+
+```
+feat(faz-4): 3 panelli UI bileşenleri tamamlandı
+
+- src/App.tsx: AgentState yönetimi, runAgent entegrasyonu
+- src/components/MessagePanel.tsx: mesaj listesi + loading state
+- src/components/TracePanel.tsx: animasyonlu trace adımları
+```
+
+### 3. Push
+```bash
+git -C /home/caglarkc/Desktop/Github/all-agentics/estate-agent push origin main
+```
+Push başarısızsa hata mesajını teslim çıktısına ekle, --force kullanma.
+
+### 4. Teslim çıktısına ekle
+"Git" başlığı altında commit hash'ini ve push sonucunu belirt:
+```
+**Git**
+Commit: abc1234 — feat(faz-N): ...
+Push: origin/main ✓
+```
 
 ---
 
@@ -100,6 +155,7 @@ const text = data.content[0].text;
 3. `Aktif davranışlar` — kullanıcı ne görür / ne çalışır
 4. `Beklenen eklemeler` — env / config gereksinimleri; yoksa `Yok`
 5. `Manuel kontrol` — elle doğrulanacaklar
+6. `Git` — commit hash + push sonucu (zorunlu)
 
 ---
 
