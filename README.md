@@ -33,19 +33,21 @@ Customer Message
       ↓
  agentController
       ↓
+ llmClient (anthropic | openai | ollama)
+      ↓
 ┌─────────────────────────────┐
 │  searchListings             │  ← mock JSON
 │  checkAvailability          │  ← property status
 │  scoreLead                  │  ← HOT/WARM/COLD
-│  draftReply ──→ Claude API  │  ← reply draft
+│  draftReply ──→ LLM API     │  ← reply draft
 └─────────────────────────────┘
       ↓
  approvalGate (pending → approved | edited | regenerated)
       ↓
- createFollowUp ──→ Claude API  ← CRM note
+ createFollowUp ──→ LLM API  ← CRM note
 ```
 
-The UI never calls the LLM directly. It sends selected customer messages into `agentController`, receives live trace updates, then routes approval actions through `approvalGate`.
+The UI never calls provider APIs directly. It sends selected customer messages into `agentController`, receives live trace updates, then routes approval actions through `approvalGate`. All provider traffic goes through `llmClient`, which switches between Anthropic, OpenAI, and Ollama based on `VITE_LLM_PROVIDER`.
 
 ## Tool System
 
@@ -57,7 +59,32 @@ Her tool tek sorumluluk taşır ve birbirinden bağımsız çağrılabilir. `too
 - `checkAvailability`: Property status ve viewing slot bilgisini döner
 - `scoreLead`: Mesaj sinyallerinden HOT/WARM/COLD lead skoru üretir
 - `draftReply`: Claude API ile property verisine sadık, kısa cevap taslağı üretir
-- `createFollowUp`: Claude API ile CRM'e yazılacak 2 cümlelik takip notu oluşturur
+- `createFollowUp`: seçili LLM provider ile CRM'e yazılacak 2 cümlelik takip notu oluşturur
+
+## Chain of Thought & Self-Critique
+
+EstatePilot iki aşamalı akıl yürütme kullanır:
+
+1. Intent extraction: "Think step by step" system prompt ile müşteri niyeti analiz edilir, reasoning alanı trace'de görünür.
+2. Self-critique: Draft üretildikten sonra ayrı bir LLM çağrısı ile gözden geçirilir. Sorun bulunursa otomatik düzeltilir, trace'de "auto-corrected" olarak loglanır.
+
+## Proactive Engine
+
+Arka planda 30 saniyede bir çalışır. Lead aging kuralı 2+ dakika bekleyen pending/approved lead'leri yakalar. Repeat contact kuralı aynı müşteriden 2+ işlenmiş mesaj olduğunda insight üretir.
+
+Insights paneli sağ kolonda collapsible olarak görünür. Panelden manager summary üretilebilir; bu özet `llmClient` üzerinden seçili provider'a gönderilir.
+
+## Multi-Provider LLM Support
+
+`.env` içinde `VITE_LLM_PROVIDER` değiştirerek `anthropic`, `openai` veya `ollama` seçilebilir. Ollama local çalıştığı için internet gerektirmez.
+
+```bash
+VITE_LLM_PROVIDER=anthropic
+VITE_ANTHROPIC_API_KEY=sk-...
+VITE_OPENAI_API_KEY=
+VITE_OLLAMA_BASE_URL=http://localhost:11434
+VITE_OLLAMA_MODEL=llama3.2
+```
 
 ## Approval Gate
 
@@ -117,9 +144,10 @@ Bu Sentinel projemdeki güvenlik mimarisinden ilham alındı.
    cp .env.example .env
    ```
 
-4. Add your Anthropic API key to `.env`:
+4. Add your provider settings to `.env`:
 
    ```bash
+   VITE_LLM_PROVIDER=anthropic
    VITE_ANTHROPIC_API_KEY=sk-...
    ```
 
@@ -139,9 +167,8 @@ Bu Sentinel projemdeki güvenlik mimarisinden ilham alındı.
 
 ## Future Improvements
 
-- Multi-provider LLM support: OpenAI, Anthropic, Ollama/local models
-- Chain-of-thought self-critique loop before draft approval, with a visible review trace
-- Proactive engine: lead aging alerts, daily summary, and follow-up reminders
 - Real CRM integration via HubSpot API or Salesforce API
 - WhatsApp Business API integration for live inbound message ingestion
 - Better evaluation harness for lead scoring and no-invention checks
+- Calendar-aware viewing slot booking
+- Role-based team inbox for multiple estate agents
