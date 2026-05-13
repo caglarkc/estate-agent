@@ -15,16 +15,39 @@ EstatePilot ne yapar:
 - Onaylanınca CRM notu oluşturur
 - Hiçbir zaman property bilgisi icat etmez — sadece gerçek veriden çalışır
 
+## Project status (May 2026)
+
+Bu repo şu an **çalışan bir Vite + React + TypeScript prototipi**. Tamamlanan başlıca parçalar:
+
+| Alan | Durum |
+|------|--------|
+| 3 panel UI (mesajlar / çalışma alanı + trace / property + insights) | Tamam |
+| `runAgent` akışı: intent (LLM JSON) → plan → tool zinciri → taslak → isteğe bağlı self-review | Tamam |
+| Intent router (`router.ts`): `viewing` / `availability` → full pipeline; `pricing` → availability + self-critique kapalı; `application_status` → sadece taslak; diğer → `general` planı | Tamam |
+| Tool registry: `searchListings`, `checkAvailability`, `scoreLead`, `draftReply`, `createFollowUp` | Tamam |
+| Approval gate: pending → approve / edit / regenerate; approve sonrası `createFollowUp` | Tamam |
+| Çoklu LLM sağlayıcı (`llmClient`): Anthropic, OpenAI, Gemini, OpenRouter, Ollama | Tamam |
+| Proactive engine (30 sn): bekleyen / onaylı lead yaşlandırma + aynı gönderenden tekrar iletişim insight'ları | Tamam |
+| Sabah özeti modalı (`MorningBriefing` + `generateBriefing`) — açılışta LLM ile 3–4 maddelik öncelik listesi | Tamam |
+| İkincil ilanlar (`searchListings` alternatives + `AlternativesPanel`) | Tamam |
+| Lead drift rozeti (`detectLeadDrift` — uzun süredir temas + `fading` sentiment → "Cooling") | Tamam |
+| Vitest: entegrasyon testleri (`src/test/integration`) — `callLLM` gerçek `.env` sağlayıcısına bağlanabilir | Tamam |
+| Cursor skill taslakları (`skills/ai-implementation-mode`, `skills/project-manager-mode`) | Tamam (dokümantasyon) |
+
+Henüz yok (yol haritası `Future Improvements` ile uyumlu): gerçek CRM / WhatsApp, canlı veri feed'i, değerlendirme harness'i, takvim rezervasyonu, çoklu danışman rolü.
+
 ## Live Demo Flow
 
 Adım adım ne görülür:
 
-1. Sol panelde bir müşteri mesajına tıkla
-2. Orta panelde agent trace canlı oluşuyor: Intent extracted → Property matched → Lead scored → Draft generated
-3. Sağ panelde matched property ve HOT/WARM/COLD badge görünüyor
-4. Draft reply düzenlenebilir textarea'da hazır
-5. Approve / Edit & Send / Regenerate butonlarından biri seçilir
-6. Approve sonrası CRM notu otomatik oluşuyor
+1. İlk yüklemede isteğe bağlı **sabah özeti** kartı açılır; kapatabilirsin
+2. Sol panelde bir müşteri mesajına tıkla (soğuyan lead'lerde **Cooling** rozeti görünür)
+3. Orta panelde agent trace canlı oluşuyor: Intent extracted → Property matched (veya skip) → Availability / Lead scoring (plan’a göre skip olabilir) → Draft → Self-review (plan’a göre)
+4. Taslak onay öncesi eşleşen ilanın altında **alternatif ilan** listesi görünür
+5. Sağ panelde matched property ve HOT/WARM/COLD badge görünüyor
+6. Draft reply düzenlenebilir textarea'da hazır
+7. Approve / Edit & Send / Regenerate butonlarından biri seçilir
+8. Approve sonrası CRM notu otomatik oluşuyor; Insights panelinden manager özeti üretilebilir
 
 ## Architecture
 
@@ -53,20 +76,22 @@ The UI never calls provider APIs directly. It sends selected customer messages i
 
 Her tool tek sorumluluk taşır ve birbirinden bağımsız çağrılabilir. `toolRegistry` isimden fonksiyona dispatch yapar. Bu pattern OrionCli projemdeki tool registry mimarisinden adapte edildi.
 
-5 tool:
+Kayıtlı **5 tool** (agent döngüsünde kullanılır):
 
-- `searchListings`: Intent içindeki city, pet, furnished ve bedroom sinyallerine göre `mockListings.json` içinde en iyi property eşleşmesini bulur
+- `searchListings`: Intent içindeki city, pet, furnished ve bedroom sinyallerine göre `mockListings.json` içinde en iyi property eşleşmesini bulur; birincil eşleşme + `alternatives` döner
 - `checkAvailability`: Property status ve viewing slot bilgisini döner
 - `scoreLead`: Mesaj sinyallerinden HOT/WARM/COLD lead skoru üretir
 - `draftReply`: seçili LLM provider ile property verisine sadık, kısa cevap taslağı üretir
 - `createFollowUp`: seçili LLM provider ile CRM'e yazılacak 2 cümlelik takip notu oluşturur
+
+Registry dışı yardımcı: `generateBriefing` — uygulama açılışında `mockMessages` + listing metriklerinden LLM ile kısa öncelik maddeleri üretir (`MorningBriefing` UI).
 
 ## Chain of Thought & Self-Critique
 
 EstatePilot iki aşamalı akıl yürütme kullanır:
 
 1. Intent extraction: "Think step by step" system prompt ile müşteri niyeti analiz edilir, reasoning alanı trace'de görünür.
-2. Self-critique: Draft üretildikten sonra ayrı bir LLM çağrısı ile gözden geçirilir. Sorun bulunursa otomatik düzeltilir, trace'de "auto-corrected" olarak loglanır.
+2. Self-critique: `router.ts` planında `needsSelfCritique: true` ise (şu an özellikle `viewing` / `availability` → `full` rotası), draft üretildikten sonra ayrı bir LLM çağrısı ile gözden geçirilir. Sorun bulunursa otomatik düzeltilir, trace'de "auto-corrected" olarak loglanır. Diğer intent rotalarında bu adım atlanır.
 
 ## Proactive Engine
 
@@ -136,12 +161,21 @@ Bu Sentinel projemdeki güvenlik mimarisinden ilham alındı.
 
 > Rather than building from scratch, I adapted proven patterns to a new domain in ~5 hours.
 
+## Testing
+
+```bash
+npm test              # Vitest — tüm testler
+npm run test:integration   # Sadece src/test/integration
+```
+
+Unit tarafında `src/test/setup.ts`, entegrasyon dışı koşularda `fetch` ve `import.meta.env` mock’lar. **Entegrasyon klasörü** çalıştırıldığında gerçek `VITE_*` değerleri kullanılır; `callLLM` testleri seçili sağlayıcıya ağ üzerinden gider. Sağlayıcı yavaşsa veya anahtar eksikse hata veya zaman aşımı alabilirsin — ilgili testlerde test başına süre üst sınırı yükseltilmiştir.
+
 ## How to Run
 
 1. Clone the repo or open the project directory:
 
    ```bash
-   cd /home/caglarkc/Desktop/Github/all-agentics/estate-agent
+   cd estate-agent
    ```
 
 2. Install dependencies:

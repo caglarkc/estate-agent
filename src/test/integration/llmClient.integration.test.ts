@@ -5,16 +5,20 @@ function cleanJson(text: string): string {
   return text.replace(/```json|```/g, "").trim();
 }
 
-describe("callLLM — Gemini integration", () => {
-  it("basit soru sorunca string döner ve cevap London içerir", async () => {
-    const result = await callLLM(
-      "Answer briefly and directly.",
-      "What is the capital of the UK? Reply with only the city name.",
-    );
+describe("callLLM — provider integration (uses VITE_LLM_* from .env)", () => {
+  it(
+    "basit soru sorunca string döner ve cevap London içerir",
+    async () => {
+      const result = await callLLM(
+        "Answer briefly and directly.",
+        "What is the capital of the UK? Reply with only the city name.",
+      );
 
-    expect(typeof result).toBe("string");
-    expect(result.toLowerCase()).toContain("london");
-  });
+      expect(typeof result).toBe("string");
+      expect(result.toLowerCase()).toContain("london");
+    },
+    120_000,
+  );
 
   it("JSON çıktısı isteyince parse edilebilir JSON döner", async () => {
     const result = await callLLM(
