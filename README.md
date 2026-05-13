@@ -58,7 +58,7 @@ Her tool tek sorumluluk taşır ve birbirinden bağımsız çağrılabilir. `too
 - `searchListings`: Intent içindeki city, pet, furnished ve bedroom sinyallerine göre `mockListings.json` içinde en iyi property eşleşmesini bulur
 - `checkAvailability`: Property status ve viewing slot bilgisini döner
 - `scoreLead`: Mesaj sinyallerinden HOT/WARM/COLD lead skoru üretir
-- `draftReply`: Claude API ile property verisine sadık, kısa cevap taslağı üretir
+- `draftReply`: seçili LLM provider ile property verisine sadık, kısa cevap taslağı üretir
 - `createFollowUp`: seçili LLM provider ile CRM'e yazılacak 2 cümlelik takip notu oluşturur
 
 ## Chain of Thought & Self-Critique
