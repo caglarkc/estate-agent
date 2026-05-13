@@ -157,7 +157,7 @@ export async function runAgent(
     onTrace(
       createTraceStep(
         "Lead scored",
-        `${leadScore.score} - ${leadScore.signals.join(", ")}`,
+        `${leadScore.score} — ${leadScore.signals.join(", ")}`,
       ),
     );
 
