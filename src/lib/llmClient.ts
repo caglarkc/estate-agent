@@ -1,4 +1,4 @@
-type LLMProvider = "anthropic" | "openai" | "ollama";
+type LLMProvider = "anthropic" | "openai" | "ollama" | "gemini" | "openrouter";
 
 interface AnthropicTextBlock {
   text?: string;
@@ -24,10 +24,29 @@ interface OllamaResponse {
   };
 }
 
+interface GeminiPart {
+  text?: string;
+}
+
+interface GeminiCandidate {
+  content?: {
+    parts?: GeminiPart[];
+  };
+}
+
+interface GeminiResponse {
+  candidates?: GeminiCandidate[];
+}
+
 function getProvider(): LLMProvider {
   const provider = import.meta.env.VITE_LLM_PROVIDER ?? "anthropic";
 
-  if (provider === "openai" || provider === "ollama") {
+  if (
+    provider === "openai" ||
+    provider === "ollama" ||
+    provider === "gemini" ||
+    provider === "openrouter"
+  ) {
     return provider;
   }
 
@@ -102,6 +121,66 @@ export async function callLLM(system: string, user: string): Promise<string> {
 
     const data = (await response.json()) as OllamaResponse;
     return requireText(data.message?.content, provider);
+  }
+
+  if (provider === "gemini") {
+    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+    const model = import.meta.env.VITE_GEMINI_MODEL ?? "gemini-2.0-flash";
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          system_instruction: { parts: [{ text: system }] },
+          contents: [{ role: "user", parts: [{ text: user }] }],
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      await readFailure(provider, response);
+    }
+
+    const data = (await response.json()) as GeminiResponse;
+    return requireText(
+      data.candidates?.[0]?.content?.parts?.[0]?.text,
+      provider,
+    );
+  }
+
+  if (provider === "openrouter") {
+    const model =
+      import.meta.env.VITE_OPENROUTER_MODEL ?? "mistralai/mistral-7b-instruct";
+    const response = await fetch(
+      "https://openrouter.ai/api/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${import.meta.env.VITE_OPENROUTER_API_KEY}`,
+          "HTTP-Referer": "https://estatepilot.local",
+          "X-Title": "EstatePilot",
+        },
+        body: JSON.stringify({
+          model,
+          max_tokens: 1000,
+          messages: [
+            { role: "system", content: system },
+            { role: "user", content: user },
+          ],
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      await readFailure(provider, response);
+    }
+
+    const data = (await response.json()) as OpenAIResponse;
+    return requireText(data.choices?.[0]?.message?.content, provider);
   }
 
   const response = await fetch("https://api.anthropic.com/v1/messages", {

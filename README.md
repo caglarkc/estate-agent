@@ -47,7 +47,7 @@ Customer Message
  createFollowUp ──→ LLM API  ← CRM note
 ```
 
-The UI never calls provider APIs directly. It sends selected customer messages into `agentController`, receives live trace updates, then routes approval actions through `approvalGate`. All provider traffic goes through `llmClient`, which switches between Anthropic, OpenAI, and Ollama based on `VITE_LLM_PROVIDER`.
+The UI never calls provider APIs directly. It sends selected customer messages into `agentController`, receives live trace updates, then routes approval actions through `approvalGate`. All provider traffic goes through `llmClient`, which switches between Anthropic, OpenAI, Gemini, OpenRouter, and Ollama based on `VITE_LLM_PROVIDER`.
 
 ## Tool System
 
@@ -76,12 +76,24 @@ Insights paneli sağ kolonda collapsible olarak görünür. Panelden manager sum
 
 ## Multi-Provider LLM Support
 
-`.env` içinde `VITE_LLM_PROVIDER` değiştirerek `anthropic`, `openai` veya `ollama` seçilebilir. Ollama local çalıştığı için internet gerektirmez.
+`.env` içinde `VITE_LLM_PROVIDER` değiştirerek `anthropic`, `openai`, `gemini`, `openrouter` veya `ollama` seçilebilir. Ollama local çalıştığı için internet gerektirmez.
+
+| Provider | Env Var | Notlar |
+|---|---|---|
+| anthropic | `VITE_ANTHROPIC_API_KEY` | Default |
+| openai | `VITE_OPENAI_API_KEY` | gpt-4o |
+| gemini | `VITE_GEMINI_API_KEY` + `VITE_GEMINI_MODEL` | gemini-2.0-flash default |
+| openrouter | `VITE_OPENROUTER_API_KEY` + `VITE_OPENROUTER_MODEL` | 100+ model, mistral-7b default |
+| ollama | `VITE_OLLAMA_BASE_URL` + `VITE_OLLAMA_MODEL` | Local, internet gerektirmez |
 
 ```bash
 VITE_LLM_PROVIDER=anthropic
 VITE_ANTHROPIC_API_KEY=sk-...
 VITE_OPENAI_API_KEY=
+VITE_GEMINI_API_KEY=
+VITE_GEMINI_MODEL=gemini-2.0-flash
+VITE_OPENROUTER_API_KEY=
+VITE_OPENROUTER_MODEL=mistralai/mistral-7b-instruct
 VITE_OLLAMA_BASE_URL=http://localhost:11434
 VITE_OLLAMA_MODEL=llama3.2
 ```
