@@ -2,52 +2,52 @@
 
 ## Problem
 
-UK estate agent danışmanları günde onlarca WhatsApp/email mesajı alıyor. Her mesaj için manuel olarak ilanı bulmak, müşteri niyetini analiz etmek, uygun cevap yazmak ve CRM'e not düşmek gerekiyor. Bu işlem mesaj başına 5-10 dakika sürüyor ve yanlış ilan bilgisi paylaşma, lead sıcaklığını kaçırma veya takip notu yazmayı unutma riski yüksek.
+UK estate agent consultants receive dozens of WhatsApp and email messages every day. Each message means manually finding the listing, analysing customer intent, drafting an appropriate reply, and logging notes in the CRM. That often takes 5–10 minutes per message, with a high risk of sharing wrong listing details, missing lead temperature, or forgetting a follow-up note.
 
-EstatePilot bu süreci birkaç saniyeye indiriyor, ancak son kararı her zaman danışmana bırakıyor.
+EstatePilot compresses that workflow to seconds while keeping the final decision with the consultant.
 
 ## Solution
 
-EstatePilot ne yapar:
+EstatePilot:
 
-- Müşteri mesajını analiz eder, property'yi bulur, lead sıcaklığını çıkarır
-- Cevap taslağı üretir, danışmanın onayına sunar
-- Onaylanınca CRM notu oluşturur
-- Hiçbir zaman property bilgisi icat etmez — sadece gerçek veriden çalışır
+- Analyses the customer message, finds the property, and infers lead temperature
+- Produces a reply draft for consultant review
+- After approval, creates a CRM-style follow-up note
+- Never invents property details — it only works from real (mock) listing data
 
 ## Project status (May 2026)
 
-Bu repo şu an **çalışan bir Vite + React + TypeScript prototipi**. Tamamlanan başlıca parçalar:
+This repo is a **working Vite + React + TypeScript prototype**. Major shipped pieces:
 
-| Alan | Durum |
+| Area | Status |
 |------|--------|
-| 3 panel UI (mesajlar / çalışma alanı + trace / property + insights) | Tamam |
-| `runAgent` akışı: intent (LLM JSON) → plan → tool zinciri → taslak → isteğe bağlı self-review | Tamam |
-| Intent router (`router.ts`): `viewing` / `availability` → full pipeline; `pricing` → availability + self-critique kapalı; `application_status` → sadece taslak; diğer → `general` planı | Tamam |
-| Tool registry: `searchListings`, `checkAvailability`, `scoreLead`, `draftReply`, `createFollowUp` | Tamam |
-| Approval gate: pending → approve / edit / regenerate; approve sonrası `createFollowUp` | Tamam |
-| Çoklu LLM sağlayıcı (`llmClient`): Anthropic, OpenAI, Gemini, OpenRouter, Ollama | Tamam |
-| Proactive engine (30 sn): bekleyen / onaylı lead yaşlandırma + aynı gönderenden tekrar iletişim insight'ları | Tamam |
-| Sabah özeti modalı (`MorningBriefing` + `generateBriefing`) — açılışta LLM ile 3–4 maddelik öncelik listesi | Tamam |
-| İkincil ilanlar (`searchListings` alternatives + `AlternativesPanel`) | Tamam |
-| Lead drift rozeti (`detectLeadDrift` — uzun süredir temas + `fading` sentiment → "Cooling") | Tamam |
-| Vitest: entegrasyon testleri (`src/test/integration`) — `callLLM` gerçek `.env` sağlayıcısına bağlanabilir | Tamam |
-| Cursor skill taslakları (`skills/ai-implementation-mode`, `skills/project-manager-mode`) | Tamam (dokümantasyon) |
+| 3-panel UI (messages / workbench + trace / property + insights) | Done |
+| `runAgent` flow: intent (LLM JSON) → plan → tool chain → draft → optional self-review | Done |
+| Intent router (`router.ts`): `viewing` / `availability` → full pipeline; `pricing` → no availability check or self-critique; `application_status` → draft only; default → `general` plan | Done |
+| Tool registry: `searchListings`, `checkAvailability`, `scoreLead`, `draftReply`, `createFollowUp` | Done |
+| Approval gate: pending → approve / edit / regenerate; after approve, `createFollowUp` runs | Done |
+| Multi-provider LLM (`llmClient`): Anthropic, OpenAI, Gemini, OpenRouter, Ollama | Done |
+| Proactive engine (30s): aging for pending/approved leads + repeat-contact insights | Done |
+| Morning briefing modal (`MorningBriefing` + `generateBriefing`) — LLM-generated 3–4 priority bullets on load | Done |
+| Secondary listings (`searchListings` alternatives + `AlternativesPanel`) | Done |
+| Lead drift badge (`detectLeadDrift` — long gap since contact + `fading` sentiment → “Cooling”) | Done |
+| Vitest: integration tests under `src/test/integration` — `callLLM` may hit the real provider from `.env` | Done |
+| Cursor skill drafts (`skills/ai-implementation-mode`, `skills/project-manager-mode`) | Done (documentation) |
 
-Henüz yok (yol haritası `Future Improvements` ile uyumlu): gerçek CRM / WhatsApp, canlı veri feed'i, değerlendirme harness'i, takvim rezervasyonu, çoklu danışman rolü.
+Not built yet (aligned with **Future Improvements** below): real CRM / WhatsApp, live data feeds, evaluation harness, calendar booking, multi-agent roles.
 
 ## Live Demo Flow
 
-Adım adım ne görülür:
+What you see step by step:
 
-1. İlk yüklemede isteğe bağlı **sabah özeti** kartı açılır; kapatabilirsin
-2. Sol panelde bir müşteri mesajına tıkla (soğuyan lead'lerde **Cooling** rozeti görünür)
-3. Orta panelde agent trace canlı oluşuyor: Intent extracted → Property matched (veya skip) → Availability / Lead scoring (plan’a göre skip olabilir) → Draft → Self-review (plan’a göre)
-4. Taslak onay öncesi eşleşen ilanın altında **alternatif ilan** listesi görünür
-5. Sağ panelde matched property ve HOT/WARM/COLD badge görünüyor
-6. Draft reply düzenlenebilir textarea'da hazır
-7. Approve / Edit & Send / Regenerate butonlarından biri seçilir
-8. Approve sonrası CRM notu otomatik oluşuyor; Insights panelinden manager özeti üretilebilir
+1. On first load, an optional **morning briefing** card appears; you can dismiss it
+2. Click a customer message in the left panel (cooling leads show a **Cooling** badge)
+3. In the centre, the agent trace updates live: Intent extracted → Property matched (or skipped) → Availability / Lead scoring (may be skipped per plan) → Draft → Self-review (per plan)
+4. Before approval, an **alternative listings** list appears under the matched property
+5. The right panel shows the matched property and a HOT/WARM/COLD badge
+6. The draft reply is editable in a textarea
+7. Choose Approve, Edit & Send, or Regenerate
+8. After Approve, a CRM note is created automatically; the Insights panel can generate a manager summary
 
 ## Architecture
 
@@ -56,7 +56,7 @@ Customer Message
       ↓
  agentController
       ↓
- llmClient (anthropic | openai | ollama)
+ llmClient (anthropic | openai | gemini | openrouter | ollama)
       ↓
 ┌─────────────────────────────┐
 │  searchListings             │  ← mock JSON
@@ -74,42 +74,42 @@ The UI never calls provider APIs directly. It sends selected customer messages i
 
 ## Tool System
 
-Her tool tek sorumluluk taşır ve birbirinden bağımsız çağrılabilir. `toolRegistry` isimden fonksiyona dispatch yapar. Bu pattern OrionCli projemdeki tool registry mimarisinden adapte edildi.
+Each tool has a single responsibility and can be invoked independently. `toolRegistry` dispatches by name to the implementation. This pattern was adapted from the tool registry architecture in my OrionCli project.
 
-Kayıtlı **5 tool** (agent döngüsünde kullanılır):
+**Five registered tools** (used in the agent loop):
 
-- `searchListings`: Intent içindeki city, pet, furnished ve bedroom sinyallerine göre `mockListings.json` içinde en iyi property eşleşmesini bulur; birincil eşleşme + `alternatives` döner
-- `checkAvailability`: Property status ve viewing slot bilgisini döner
-- `scoreLead`: Mesaj sinyallerinden HOT/WARM/COLD lead skoru üretir
-- `draftReply`: seçili LLM provider ile property verisine sadık, kısa cevap taslağı üretir
-- `createFollowUp`: seçili LLM provider ile CRM'e yazılacak 2 cümlelik takip notu oluşturur
+- `searchListings`: Finds the best property match in `mockListings.json` using city, pet, furnished, and bedroom signals from intent; returns a primary match plus `alternatives`
+- `checkAvailability`: Returns property status and viewing slot information
+- `scoreLead`: Produces a HOT/WARM/COLD score from message signals
+- `draftReply`: Uses the selected LLM provider to produce a short, listing-faithful reply draft
+- `createFollowUp`: Uses the selected LLM provider to produce a two-sentence CRM follow-up note
 
-Registry dışı yardımcı: `generateBriefing` — uygulama açılışında `mockMessages` + listing metriklerinden LLM ile kısa öncelik maddeleri üretir (`MorningBriefing` UI).
+Outside the registry: `generateBriefing` — on app load, uses the LLM with `mockMessages` and listing metrics to produce short priority bullets (shown in `MorningBriefing`).
 
 ## Chain of Thought & Self-Critique
 
-EstatePilot iki aşamalı akıl yürütme kullanır:
+EstatePilot uses a two-stage reasoning pattern:
 
-1. Intent extraction: "Think step by step" system prompt ile müşteri niyeti analiz edilir, reasoning alanı trace'de görünür.
-2. Self-critique: `router.ts` planında `needsSelfCritique: true` ise (şu an özellikle `viewing` / `availability` → `full` rotası), draft üretildikten sonra ayrı bir LLM çağrısı ile gözden geçirilir. Sorun bulunursa otomatik düzeltilir, trace'de "auto-corrected" olarak loglanır. Diğer intent rotalarında bu adım atlanır.
+1. **Intent extraction:** A “think step by step” style system prompt analyses customer intent as JSON; reasoning appears in the trace when the model returns it.
+2. **Self-critique:** When `needsSelfCritique` is `true` in the `router.ts` plan (currently the `full` route for `viewing` / `availability`), a separate LLM call reviews the draft after generation. If issues are found, the draft is auto-corrected and the trace logs “auto-corrected”. Other intent routes skip this step.
 
 ## Proactive Engine
 
-Arka planda 30 saniyede bir çalışır. Lead aging kuralı 2+ dakika bekleyen pending/approved lead'leri yakalar. Repeat contact kuralı aynı müşteriden 2+ işlenmiş mesaj olduğunda insight üretir.
+Runs in the background every 30 seconds. A **lead aging** rule flags pending or approved items that have been waiting 2+ minutes. A **repeat contact** rule emits an insight when the same customer has 2+ processed messages.
 
-Insights paneli sağ kolonda collapsible olarak görünür. Panelden manager summary üretilebilir; bu özet `llmClient` üzerinden seçili provider'a gönderilir.
+The Insights panel sits in the right column (collapsible). From there you can generate a manager summary, sent through `llmClient` to the configured provider.
 
 ## Multi-Provider LLM Support
 
-`.env` içinde `VITE_LLM_PROVIDER` değiştirerek `anthropic`, `openai`, `gemini`, `openrouter` veya `ollama` seçilebilir. Ollama local çalıştığı için internet gerektirmez.
+Set `VITE_LLM_PROVIDER` in `.env` to `anthropic`, `openai`, `gemini`, `openrouter`, or `ollama`. Ollama runs locally and does not require internet for the model call itself.
 
-| Provider | Env Var | Notlar |
+| Provider | Env var | Notes |
 |---|---|---|
 | anthropic | `VITE_ANTHROPIC_API_KEY` | Default |
 | openai | `VITE_OPENAI_API_KEY` | gpt-4o |
 | gemini | `VITE_GEMINI_API_KEY` + `VITE_GEMINI_MODEL` | gemini-2.0-flash default |
-| openrouter | `VITE_OPENROUTER_API_KEY` + `VITE_OPENROUTER_MODEL` | 100+ model, mistral-7b default |
-| ollama | `VITE_OLLAMA_BASE_URL` + `VITE_OLLAMA_MODEL` | Local, internet gerektirmez |
+| openrouter | `VITE_OPENROUTER_API_KEY` + `VITE_OPENROUTER_MODEL` | 100+ models, mistral-7b default |
+| ollama | `VITE_OLLAMA_BASE_URL` + `VITE_OLLAMA_MODEL` | Local, no cloud API |
 
 ```bash
 VITE_LLM_PROVIDER=anthropic
@@ -127,25 +127,25 @@ VITE_OLLAMA_MODEL=llama3.2
 
 State machine: `idle → pending → approved | edited | regenerated`
 
-`approve` çağrılınca `createFollowUp` otomatik çalışır ve CRM notu state'e yazılır. `edit`, danışmanın textarea'daki son taslağını gönderilmiş kabul eder. `regenerate`, draft ve trace'i temizleyip seçili mesaj için yeni agent döngüsü başlatır.
+Calling `approve` runs `createFollowUp` and writes the CRM note into state. `edit` treats the latest textarea content as the sent reply. `regenerate` clears draft and trace and starts a new agent run for the selected message.
 
-Bu ARCHON projemdeki approval gate tasarımından adapte edildi.
+This design was adapted from the approval gate in my ARCHON project.
 
 ## Safety Design
 
-- AI hiçbir zaman property detayı icat etmez; bu kısıt system prompt seviyesinde uygulanır
-- Son karar her zaman danışmanda — human-in-the-loop zorunlu
-- Read-only retrieval: agent veri oluşturmaz, sadece mock JSON'dan çeker
-- Trace paneli audit trail sağlar; hangi tool'un hangi sırayla çalıştığı görünür
+- The assistant does not invent property details; that constraint is enforced at the system prompt level
+- The consultant always has the final say — human-in-the-loop is mandatory
+- Read-only retrieval: the agent does not create listing data; it only reads mock JSON
+- The trace panel provides an audit trail of which tools ran and in what order
 
-Bu Sentinel projemdeki güvenlik mimarisinden ilham alındı.
+Inspired by the safety architecture in my Sentinel project.
 
 ## Success Metrics
 
-- Mesaj başına işlem süresi: manuel 5-10 dk → AI ile <30 saniye
-- Draft kalitesi: property verisine sadık, icat yok
-- Lead sıcaklık doğruluğu: kural tabanlı, açıklanabilir
-- Danışman onayı: %100 zorunlu, hiç bypass yok
+- Time per message: manual 5–10 min → with AI assist, target under 30 seconds
+- Draft quality: faithful to listing data, no fabrication
+- Lead temperature: rule-based and explainable
+- Consultant approval: required for every outbound path; no bypass
 
 ## What I Reused From My Existing Projects
 
@@ -156,7 +156,7 @@ Bu Sentinel projemdeki güvenlik mimarisinden ilham alındı.
 | **NookSpace** | 3-panel workspace layout, tool trace visibility, selected-session state management, and the left-context / center-workbench / right-inspector interaction model |
 | **OrionCli** | Tool registry pattern, agent loop architecture, approval controls, skill-driven implementation workflow, and name-based tool dispatch |
 | **ARCHON** | Approval gate state machine, planner→worker→validator pipeline thinking, stateful execution boundaries, and explicit pending/approved/regenerated transitions |
-| **Sentinel** | Read-only data access pattern, audit trail via trace, "do not invent" system prompt design, and human approval before externally meaningful actions |
+| **Sentinel** | Read-only data access pattern, audit trail via trace, “do not invent” system prompt design, and human approval before externally meaningful actions |
 | **Argus** | Edge-case thinking, success metric design, evaluation approach, and clear separation between observable signals and inferred outcomes |
 
 > Rather than building from scratch, I adapted proven patterns to a new domain in ~5 hours.
@@ -164,11 +164,11 @@ Bu Sentinel projemdeki güvenlik mimarisinden ilham alındı.
 ## Testing
 
 ```bash
-npm test              # Vitest — tüm testler
-npm run test:integration   # Sadece src/test/integration
+npm test                 # Vitest — full suite
+npm run test:integration # Only src/test/integration
 ```
 
-Unit tarafında `src/test/setup.ts`, entegrasyon dışı koşularda `fetch` ve `import.meta.env` mock’lar. **Entegrasyon klasörü** çalıştırıldığında gerçek `VITE_*` değerleri kullanılır; `callLLM` testleri seçili sağlayıcıya ağ üzerinden gider. Sağlayıcı yavaşsa veya anahtar eksikse hata veya zaman aşımı alabilirsin — ilgili testlerde test başına süre üst sınırı yükseltilmiştir.
+For non-integration runs, `src/test/setup.ts` mocks `fetch` and `import.meta.env`. When you run the **integration** folder, real `VITE_*` values are used and `callLLM` tests may call the network. Slow providers or missing keys can cause errors or timeouts; per-test timeouts are raised where needed for live calls.
 
 ## How to Run
 
