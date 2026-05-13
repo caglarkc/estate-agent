@@ -6,12 +6,13 @@ declare const process: { argv: string[] };
 const isIntegrationRun = process.argv.some((arg: string) =>
   arg.includes("src/test/integration"),
 );
+const usesRealGeminiProvider = import.meta.env.VITE_LLM_PROVIDER === "gemini";
 
 Object.defineProperty(globalThis, "crypto", {
   value: { randomUUID: () => `test-uuid-${Math.random().toString(36).slice(2)}` },
 });
 
-if (!isIntegrationRun) {
+if (!isIntegrationRun && !usesRealGeminiProvider) {
   Object.defineProperty(import.meta, "env", {
     value: {
       VITE_LLM_PROVIDER: "anthropic",
