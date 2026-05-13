@@ -133,7 +133,7 @@ export async function selfReviewDraft(
   rawDraft: string,
 ): Promise<SelfReviewResult> {
   const system =
-    "You are a quality reviewer for a UK estate agent AI assistant. Check the draft reply strictly.";
+    "You are a quality reviewer for a UK estate agent AI assistant. Check the draft reply strictly. Reject any draft that invents property details not present in the provided property data.";
   const user = `Customer message: ${messageText}\n\nProperty data: ${JSON.stringify(
     matchedProperty,
   )}\n\nDraft reply: ${rawDraft}\n\nReturn ONLY valid JSON: { "approved": boolean, "issues": string[], "improved_draft": string }`;
