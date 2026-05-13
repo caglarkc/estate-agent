@@ -54,8 +54,6 @@ function App() {
   };
 
   const handleApprove = async () => {
-    setLoading(true);
-
     try {
       const nextState = await approvalGate.approve(agentState, (note) => {
         setAgentState((state) => ({ ...state, followUpNote: note }));
@@ -72,8 +70,6 @@ function App() {
           timestamp: Date.now(),
         },
       ]);
-    } finally {
-      setLoading(false);
     }
   };
 

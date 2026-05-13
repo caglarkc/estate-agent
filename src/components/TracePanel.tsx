@@ -1,4 +1,5 @@
 import type { TraceStep } from "@/types/index";
+import { useEffect, useState } from "react";
 
 interface TracePanelProps {
   trace: TraceStep[];
@@ -49,19 +50,38 @@ export function TracePanel({ trace }: TracePanelProps) {
       ) : (
         <div className="mt-3">
           {trace.map((step, index) => (
-            <div
+            <TraceRow
               key={step.id}
-              style={{ transitionDelay: `${index * 150}ms` }}
-              className="border-b border-slate-700 py-1 text-xs text-slate-300 opacity-100 transition-opacity duration-300"
-            >
-              <span className="mr-2">{getTraceIcon(step.step)}</span>
-              <span>{step.step}</span>
-              <span className="px-1 text-slate-500">—</span>
-              <span>{step.detail}</span>
-            </div>
+              step={step}
+              index={index}
+            />
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function TraceRow({ step, index }: { step: TraceStep; index: number }) {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => setVisible(true));
+
+    return () => cancelAnimationFrame(frame);
+  }, []);
+
+  return (
+    <div
+      style={{ transitionDelay: `${index * 150}ms` }}
+      className={`border-b border-slate-700 py-1 text-xs text-slate-300 transition-opacity duration-300 ${
+        visible ? "opacity-100" : "opacity-0"
+      }`}
+    >
+      <span className="mr-2">{getTraceIcon(step.step)}</span>
+      <span>{step.step}</span>
+      <span className="px-1 text-slate-500">—</span>
+      <span>{step.detail}</span>
     </div>
   );
 }
