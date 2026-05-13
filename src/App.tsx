@@ -6,11 +6,19 @@ import { ApprovalButtons } from "@/components/ApprovalButtons";
 import { InsightsPanel } from "@/components/InsightsPanel";
 import { LeadScore } from "@/components/LeadScore";
 import { MessagePanel } from "@/components/MessagePanel";
+import { MorningBriefing } from "@/components/MorningBriefing";
 import { PropertyCard } from "@/components/PropertyCard";
 import { TracePanel } from "@/components/TracePanel";
+import mockListings from "@/data/mockListings.json";
 import { mockMessages } from "@/data/mockMessages";
 import { callLLM } from "@/lib/llmClient";
-import type { AgentState, CustomerMessage, TraceStep } from "@/types/index";
+import { generateBriefing } from "@/tools/generateBriefing";
+import type {
+  AgentState,
+  CustomerMessage,
+  Property,
+  TraceStep,
+} from "@/types/index";
 import { useEffect, useRef, useState } from "react";
 
 const initialAgentState: AgentState = {
@@ -29,6 +37,8 @@ interface ProcessedMessage {
   processedAt: number;
 }
 
+const listings = mockListings as Property[];
+
 function App() {
   const [agentState, setAgentState] =
     useState<AgentState>(initialAgentState);
@@ -43,6 +53,9 @@ function App() {
   const [insights, setInsights] = useState<string[]>([]);
   const [summary, setSummary] = useState<string | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
+  const [showBriefing, setShowBriefing] = useState(true);
+  const [briefingItems, setBriefingItems] = useState<string[]>([]);
+  const [briefingLoading, setBriefingLoading] = useState(true);
 
   useEffect(() => {
     processedMessagesRef.current = processedMessages;
@@ -57,6 +70,26 @@ function App() {
         );
       },
     );
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadBriefing() {
+      setBriefingLoading(true);
+      const items = await generateBriefing(mockMessages, listings);
+
+      if (active) {
+        setBriefingItems(items);
+        setBriefingLoading(false);
+      }
+    }
+
+    void loadBriefing();
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   const processMessage = async (message: CustomerMessage) => {
@@ -164,6 +197,14 @@ function App() {
 
   return (
     <main className="flex h-screen bg-slate-900 text-slate-100">
+      {showBriefing ? (
+        <MorningBriefing
+          items={briefingItems}
+          loading={briefingLoading}
+          onDismiss={() => setShowBriefing(false)}
+        />
+      ) : null}
+
       <aside className="h-screen w-1/4 overflow-y-auto border-r border-slate-800">
         <MessagePanel
           messages={mockMessages}
