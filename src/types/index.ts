@@ -29,6 +29,13 @@ export interface SearchResult {
   alternatives: Property[];
 }
 
+export interface DriftAlert {
+  messageId: string;
+  senderName: string;
+  lastContactDays: number;
+  sentimentSignal: CustomerMessage["sentimentSignal"];
+}
+
 export interface LeadScore {
   score: "HOT" | "WARM" | "COLD";
   signals: string[];
