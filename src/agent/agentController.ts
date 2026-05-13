@@ -1,4 +1,5 @@
 import { getTool } from "@/agent/toolRegistry";
+import { callLLM } from "@/lib/llmClient";
 import type { AgentState, CustomerMessage, TraceStep } from "@/types/index";
 
 export interface Intent {
@@ -15,15 +16,13 @@ export interface Intent {
   pet: boolean;
   furnished: boolean | null;
   bedrooms: number | null;
+  reasoning?: string;
 }
 
-interface ClaudeTextBlock {
-  type?: string;
-  text: string;
-}
-
-interface ClaudeMessagesResponse {
-  content?: ClaudeTextBlock[];
+interface SelfReviewResult {
+  approved: boolean;
+  issues: string[];
+  improved_draft: string;
 }
 
 const fallbackIntent: Intent = {
@@ -76,45 +75,14 @@ function isIntent(value: unknown): value is Intent {
   );
 }
 
-function getClaudeText(data: ClaudeMessagesResponse): string {
-  const text = data.content?.[0]?.text;
-
-  if (typeof text !== "string") {
-    throw new Error("Claude API response did not include text content.");
-  }
-
-  return text;
-}
-
 async function extractIntent(messageText: string): Promise<Intent> {
   const system =
-    "Extract the customer intent from the message as JSON. Return ONLY valid JSON, no explanation.";
-  const content = `${messageText}\n\nReturn JSON with these exact keys: intent_type (one of: availability|pricing|viewing|application_status|general), property_keywords (string[]), city (string|null), urgency (boolean), specific_date (string|null), pet (boolean), furnished (boolean|null), bedrooms (number|null)`;
-
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": import.meta.env.VITE_ANTHROPIC_API_KEY,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 300,
-      system,
-      messages: [{ role: "user", content }],
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Claude API request failed with status ${response.status}.`);
-  }
-
-  const data = (await response.json()) as ClaudeMessagesResponse;
-  const text = getClaudeText(data);
+    "Extract the customer intent from the message as JSON. Think step by step before concluding. Return ONLY valid JSON, no explanation.";
+  const user = `${messageText}\n\nReturn JSON with these exact keys: intent_type (one of: availability|pricing|viewing|application_status|general), property_keywords (string[]), city (string|null), urgency (boolean), specific_date (string|null), pet (boolean), furnished (boolean|null), bedrooms (number|null), reasoning (string)`;
+  const text = await callLLM(system, user);
 
   try {
-    const parsed = JSON.parse(text) as unknown;
+    const parsed = JSON.parse(cleanJson(text)) as unknown;
 
     if (isIntent(parsed)) {
       return parsed;
@@ -126,13 +94,70 @@ async function extractIntent(messageText: string): Promise<Intent> {
   }
 }
 
+function cleanJson(text: string): string {
+  return text.replace(/```json|```/g, "").trim();
+}
+
+function isSelfReviewResult(value: unknown): value is SelfReviewResult {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+
+  const candidate = value as Record<string, unknown>;
+
+  return (
+    typeof candidate.approved === "boolean" &&
+    Array.isArray(candidate.issues) &&
+    candidate.issues.every((issue) => typeof issue === "string") &&
+    typeof candidate.improved_draft === "string"
+  );
+}
+
+async function selfReviewDraft(
+  messageText: string,
+  matchedProperty: AgentState["matchedProperty"],
+  rawDraft: string,
+): Promise<SelfReviewResult> {
+  const system =
+    "You are a quality reviewer for a UK estate agent AI assistant. Check the draft reply strictly.";
+  const user = `Customer message: ${messageText}\n\nProperty data: ${JSON.stringify(
+    matchedProperty,
+  )}\n\nDraft reply: ${rawDraft}\n\nReturn ONLY valid JSON: { "approved": boolean, "issues": string[], "improved_draft": string }`;
+
+  try {
+    const text = await callLLM(system, user);
+    const parsed = JSON.parse(cleanJson(text)) as unknown;
+
+    if (isSelfReviewResult(parsed)) {
+      return parsed;
+    }
+
+    return {
+      approved: true,
+      issues: [],
+      improved_draft: rawDraft,
+    };
+  } catch {
+    return {
+      approved: true,
+      issues: [],
+      improved_draft: rawDraft,
+    };
+  }
+}
+
 export async function runAgent(
   message: CustomerMessage,
   onTrace: (step: TraceStep) => void,
 ): Promise<AgentState> {
   try {
     const intent = await extractIntent(message.text);
-    onTrace(createTraceStep("Intent extracted", `Type: ${intent.intent_type}`));
+    onTrace(
+      createTraceStep(
+        "Intent extracted",
+        `Type: ${intent.intent_type} — ${intent.reasoning?.slice(0, 60) ?? ""}`,
+      ),
+    );
 
     const searchListings = getTool("searchListings");
     const matchedProperty = searchListings(intent);
@@ -162,8 +187,27 @@ export async function runAgent(
     );
 
     const draftReply = getTool("draftReply");
-    const draft = await draftReply(message.text, matchedProperty, availability);
+    const rawDraft = await draftReply(
+      message.text,
+      matchedProperty,
+      availability,
+    );
     onTrace(createTraceStep("Draft reply generated", "Ready for approval"));
+
+    const review = await selfReviewDraft(
+      message.text,
+      matchedProperty,
+      rawDraft,
+    );
+    const draft = review.approved ? rawDraft : review.improved_draft;
+    onTrace(
+      createTraceStep(
+        "Self-review",
+        review.approved
+          ? "Approved — no issues found"
+          : `${review.issues.length} issue(s) found, auto-corrected`,
+      ),
+    );
 
     return {
       status: "pending",
