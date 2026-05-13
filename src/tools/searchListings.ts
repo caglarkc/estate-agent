@@ -19,6 +19,15 @@ function matchesKeywords(property: Property, keywords: string[]): boolean {
     return true;
   }
 
+  const normalizedKeywords = keywords
+    .flatMap((keyword) => keyword.toLowerCase().split(/\s+/))
+    .map((keyword) => keyword.replace(/[^a-z0-9]/g, ""))
+    .filter((keyword) => keyword.length > 2);
+
+  if (normalizedKeywords.length === 0) {
+    return true;
+  }
+
   const searchable = [
     property.title,
     property.city,
@@ -28,7 +37,7 @@ function matchesKeywords(property: Property, keywords: string[]): boolean {
     .join(" ")
     .toLowerCase();
 
-  return keywords.some((keyword) => searchable.includes(keyword.toLowerCase()));
+  return normalizedKeywords.some((keyword) => searchable.includes(keyword));
 }
 
 function hasSharedCity(property: Property, primary: Property): boolean {
