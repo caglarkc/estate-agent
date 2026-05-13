@@ -1,6 +1,13 @@
 import { getTool } from "@/agent/toolRegistry";
+import { getPlan } from "@/agent/router";
 import { callLLM } from "@/lib/llmClient";
-import type { AgentState, CustomerMessage, TraceStep } from "@/types/index";
+import type {
+  AgentState,
+  CustomerMessage,
+  LeadScore,
+  Property,
+  TraceStep,
+} from "@/types/index";
 
 export interface Intent {
   intent_type:
@@ -24,6 +31,13 @@ interface SelfReviewResult {
   issues: string[];
   improved_draft: string;
 }
+
+type AvailabilityResult = {
+  status: Property["status"];
+  viewing_slots: string[];
+  message: string;
+  available: boolean;
+};
 
 const fallbackIntent: Intent = {
   intent_type: "general",
@@ -158,56 +172,93 @@ export async function runAgent(
         `Type: ${intent.intent_type} — ${intent.reasoning?.slice(0, 60) ?? ""}`,
       ),
     );
+    const plan = getPlan(intent.intent_type);
 
-    const searchListings = getTool("searchListings");
-    const matchedProperty = searchListings(intent);
-    onTrace(
-      createTraceStep(
-        "Property matched",
-        matchedProperty ? matchedProperty.title : "No match found",
-      ),
-    );
+    let matchedProperty: AgentState["matchedProperty"] = null;
+    if (plan.needsPropertySearch) {
+      const searchListings = getTool("searchListings");
+      matchedProperty = searchListings(intent);
+      onTrace(
+        createTraceStep(
+          "Property matched",
+          matchedProperty ? matchedProperty.title : "No match",
+        ),
+      );
+    } else {
+      onTrace(
+        createTraceStep(
+          "Property search",
+          "Skipped — not needed for this intent",
+        ),
+      );
+    }
 
-    const checkAvailability = getTool("checkAvailability");
-    const availability = checkAvailability(matchedProperty?.id ?? "");
-    onTrace(
-      createTraceStep(
-        "Availability checked",
-        `Status: ${availability.status}`,
-      ),
-    );
+    let availability: AvailabilityResult = {
+      status: "available",
+      viewing_slots: [],
+      message: "N/A",
+      available: true,
+    };
+    if (plan.needsAvailabilityCheck && matchedProperty) {
+      const checkAvailability = getTool("checkAvailability");
+      const checkedAvailability = checkAvailability(matchedProperty.id);
+      availability = {
+        ...checkedAvailability,
+        available: checkedAvailability.status !== "let_agreed",
+      };
+      onTrace(
+        createTraceStep(
+          "Availability checked",
+          `Status: ${availability.status}`,
+        ),
+      );
+    } else {
+      onTrace(createTraceStep("Availability check", "Skipped"));
+    }
 
-    const scoreLead = getTool("scoreLead");
-    const leadScore = scoreLead(intent, message.text);
-    onTrace(
-      createTraceStep(
-        "Lead scored",
-        `${leadScore.score} — ${leadScore.signals.join(", ")}`,
-      ),
-    );
+    let leadScore: LeadScore | null = null;
+    if (plan.needsLeadScoring) {
+      const scoreLead = getTool("scoreLead");
+      leadScore = scoreLead(intent, message.text);
+      onTrace(
+        createTraceStep(
+          "Lead scored",
+          `${leadScore.score} — ${leadScore.signals.join(", ")}`,
+        ),
+      );
+    } else {
+      onTrace(createTraceStep("Lead scoring", "Skipped"));
+    }
 
-    const draftReply = getTool("draftReply");
-    const rawDraft = await draftReply(
-      message.text,
-      matchedProperty,
-      availability,
-    );
-    onTrace(createTraceStep("Draft reply generated", "Ready for approval"));
+    let draft = "";
+    if (plan.needsDraft) {
+      const draftReply = getTool("draftReply");
+      const rawDraft = await draftReply(
+        message.text,
+        matchedProperty,
+        availability,
+      );
+      onTrace(createTraceStep("Draft reply generated", "Ready for approval"));
 
-    const review = await selfReviewDraft(
-      message.text,
-      matchedProperty,
-      rawDraft,
-    );
-    const draft = review.approved ? rawDraft : review.improved_draft;
-    onTrace(
-      createTraceStep(
-        "Self-review",
-        review.approved
-          ? "Approved — no issues found"
-          : `${review.issues.length} issue(s) found, auto-corrected`,
-      ),
-    );
+      if (plan.needsSelfCritique) {
+        const review = await selfReviewDraft(
+          message.text,
+          matchedProperty,
+          rawDraft,
+        );
+        draft = review.approved ? rawDraft : review.improved_draft;
+        onTrace(
+          createTraceStep(
+            "Self-review",
+            review.approved
+              ? "Approved"
+              : `${review.issues.length} issue(s), auto-corrected`,
+          ),
+        );
+      } else {
+        draft = rawDraft;
+      }
+    }
 
     return {
       status: "pending",
