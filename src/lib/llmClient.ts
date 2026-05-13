@@ -1,4 +1,9 @@
-type LLMProvider = "anthropic" | "openai" | "ollama" | "gemini" | "openrouter";
+type LLMProvider =
+  | "anthropic"
+  | "openai"
+  | "ollama"
+  | "gemini"
+  | "openrouter";
 
 interface AnthropicTextBlock {
   text?: string;
