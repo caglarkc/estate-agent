@@ -11,7 +11,9 @@
     "council_tax_band": "B",
     "furnished": true,
     "bedrooms": 2,
-    "pet_friendly": false
+    "pet_friendly": false,
+    "inquiryCount": 8,
+    "viewingCount": 3
   },
   {
     "id": "prop-2",
@@ -25,7 +27,9 @@
     "council_tax_band": "C",
     "furnished": false,
     "bedrooms": 3,
-    "pet_friendly": true
+    "pet_friendly": true,
+    "inquiryCount": 11,
+    "viewingCount": 7
   },
   {
     "id": "prop-3",
@@ -39,7 +43,9 @@
     "council_tax_band": "C",
     "furnished": true,
     "bedrooms": 1,
-    "pet_friendly": false
+    "pet_friendly": false,
+    "inquiryCount": 9,
+    "viewingCount": 1
   },
   {
     "id": "prop-4",
@@ -53,7 +59,9 @@
     "council_tax_band": "D",
     "furnished": false,
     "bedrooms": 2,
-    "pet_friendly": true
+    "pet_friendly": true,
+    "inquiryCount": 12,
+    "viewingCount": 4
   },
   {
     "id": "prop-5",
@@ -67,7 +75,9 @@
     "council_tax_band": "E",
     "furnished": false,
     "bedrooms": 4,
-    "pet_friendly": false
+    "pet_friendly": false,
+    "inquiryCount": 5,
+    "viewingCount": 2
   },
   {
     "id": "prop-6",
@@ -81,7 +91,9 @@
     "council_tax_band": "B",
     "furnished": true,
     "bedrooms": 2,
-    "pet_friendly": true
+    "pet_friendly": true,
+    "inquiryCount": 7,
+    "viewingCount": 5
   },
   {
     "id": "prop-7",
@@ -95,7 +107,9 @@
     "council_tax_band": "C",
     "furnished": false,
     "bedrooms": 3,
-    "pet_friendly": true
+    "pet_friendly": true,
+    "inquiryCount": 10,
+    "viewingCount": 2
   },
   {
     "id": "prop-8",
@@ -109,7 +123,9 @@
     "council_tax_band": "A",
     "furnished": true,
     "bedrooms": 1,
-    "pet_friendly": false
+    "pet_friendly": false,
+    "inquiryCount": 6,
+    "viewingCount": 6
   },
   {
     "id": "prop-9",
@@ -123,7 +139,9 @@
     "council_tax_band": "B",
     "furnished": false,
     "bedrooms": 2,
-    "pet_friendly": false
+    "pet_friendly": false,
+    "inquiryCount": 3,
+    "viewingCount": 1
   },
   {
     "id": "prop-10",
@@ -137,6 +155,168 @@
     "council_tax_band": "D",
     "furnished": true,
     "bedrooms": 3,
-    "pet_friendly": false
+    "pet_friendly": false,
+    "inquiryCount": 4,
+    "viewingCount": 2
+  },
+  {
+    "id": "prop-11",
+    "title": "Studio flat near Northern Quarter",
+    "city": "Manchester",
+    "type": "flat",
+    "status": "available",
+    "price": "£875 pcm",
+    "viewing_slots": ["Friday 10am", "Saturday 11am"],
+    "deposit": "£875",
+    "council_tax_band": "A",
+    "furnished": true,
+    "bedrooms": 1,
+    "pet_friendly": false,
+    "inquiryCount": 9,
+    "viewingCount": 1
+  },
+  {
+    "id": "prop-12",
+    "title": "2-bedroom house in Didsbury",
+    "city": "Manchester",
+    "type": "house",
+    "status": "available",
+    "price": "£1,550 pcm",
+    "viewing_slots": ["Monday 6pm", "Wednesday 2pm", "Saturday 10am"],
+    "deposit": "£1,550",
+    "council_tax_band": "C",
+    "furnished": false,
+    "bedrooms": 2,
+    "pet_friendly": true,
+    "inquiryCount": 2,
+    "viewingCount": 0
+  },
+  {
+    "id": "prop-13",
+    "title": "1-bedroom flat in Canada Water",
+    "city": "London Zone 2",
+    "type": "flat",
+    "status": "available",
+    "price": "£2,050 pcm",
+    "viewing_slots": ["Tuesday 8am", "Thursday 7pm"],
+    "deposit": "£2,050",
+    "council_tax_band": "D",
+    "furnished": true,
+    "bedrooms": 1,
+    "pet_friendly": false,
+    "inquiryCount": 12,
+    "viewingCount": 3
+  },
+  {
+    "id": "prop-14",
+    "title": "3-bedroom house in Walthamstow",
+    "city": "London Zone 3",
+    "type": "house",
+    "status": "let_agreed",
+    "price": "£2,650 pcm",
+    "viewing_slots": ["Friday 4pm", "Sunday 10am"],
+    "deposit": "£2,650",
+    "council_tax_band": "E",
+    "furnished": false,
+    "bedrooms": 3,
+    "pet_friendly": true,
+    "inquiryCount": 8,
+    "viewingCount": 8
+  },
+  {
+    "id": "prop-15",
+    "title": "2-bedroom flat in Moseley",
+    "city": "Birmingham",
+    "type": "flat",
+    "status": "available",
+    "price": "£1,100 pcm",
+    "viewing_slots": ["Wednesday 9am", "Friday 1pm", "Saturday 12pm"],
+    "deposit": "£1,100",
+    "council_tax_band": "B",
+    "furnished": true,
+    "bedrooms": 2,
+    "pet_friendly": false,
+    "inquiryCount": 10,
+    "viewingCount": 1
+  },
+  {
+    "id": "prop-16",
+    "title": "4-bedroom house in Edgbaston",
+    "city": "Birmingham",
+    "type": "house",
+    "status": "available",
+    "price": "£1,850 pcm",
+    "viewing_slots": ["Monday 10am", "Thursday 4pm"],
+    "deposit": "£1,850",
+    "council_tax_band": "D",
+    "furnished": false,
+    "bedrooms": 4,
+    "pet_friendly": true,
+    "inquiryCount": 6,
+    "viewingCount": 2
+  },
+  {
+    "id": "prop-17",
+    "title": "2-bedroom flat in Chapel Allerton",
+    "city": "Leeds",
+    "type": "flat",
+    "status": "available",
+    "price": "£1,000 pcm",
+    "viewing_slots": ["Tuesday 5pm", "Saturday 9am"],
+    "deposit": "£1,000",
+    "council_tax_band": "B",
+    "furnished": true,
+    "bedrooms": 2,
+    "pet_friendly": true,
+    "inquiryCount": 1,
+    "viewingCount": 0
+  },
+  {
+    "id": "prop-18",
+    "title": "3-bedroom house near Roundhay Park",
+    "city": "Leeds",
+    "type": "house",
+    "status": "let_agreed",
+    "price": "£1,450 pcm",
+    "viewing_slots": ["Wednesday 3pm", "Friday 11am"],
+    "deposit": "£1,450",
+    "council_tax_band": "C",
+    "furnished": false,
+    "bedrooms": 3,
+    "pet_friendly": false,
+    "inquiryCount": 7,
+    "viewingCount": 5
+  },
+  {
+    "id": "prop-19",
+    "title": "1-bedroom flat by Bristol Harbourside",
+    "city": "Bristol",
+    "type": "flat",
+    "status": "available",
+    "price": "£1,250 pcm",
+    "viewing_slots": ["Monday 1pm", "Thursday 6pm", "Saturday 2pm"],
+    "deposit": "£1,250",
+    "council_tax_band": "B",
+    "furnished": true,
+    "bedrooms": 1,
+    "pet_friendly": false,
+    "inquiryCount": 9,
+    "viewingCount": 2
+  },
+  {
+    "id": "prop-20",
+    "title": "2-bedroom house in Bedminster",
+    "city": "Bristol",
+    "type": "house",
+    "status": "available",
+    "price": "£1,600 pcm",
+    "viewing_slots": ["Tuesday 12pm", "Friday 5pm"],
+    "deposit": "£1,600",
+    "council_tax_band": "C",
+    "furnished": false,
+    "bedrooms": 2,
+    "pet_friendly": true,
+    "inquiryCount": 0,
+    "viewingCount": 0
   }
 ]

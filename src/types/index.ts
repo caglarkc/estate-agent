@@ -11,13 +11,17 @@ export interface Property {
   furnished: boolean;
   bedrooms: number;
   pet_friendly: boolean;
+  inquiryCount: number;
+  viewingCount: number;
 }
 
 export interface CustomerMessage {
   id: string;
   sender: string;
   text: string;
-  timestamp: string;
+  timestamp: number;
+  lastContactDays: number;
+  sentimentSignal: "positive" | "neutral" | "fading";
 }
 
 export interface LeadScore {
