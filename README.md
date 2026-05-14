@@ -218,3 +218,5 @@ For non-integration runs, `src/test/setup.ts` mocks `fetch` and `import.meta.env
 - Better evaluation harness for lead scoring and no-invention checks
 - Calendar-aware viewing slot booking
 - Role-based team inbox for multiple estate agents
+
+
