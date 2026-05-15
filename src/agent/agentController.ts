@@ -1,13 +1,8 @@
-import { getTool } from "@/agent/toolRegistry";
-import { getPlan } from "@/agent/router";
+import { runWorkflow } from "@/agent/workflowRunner";
+import type { RunnerContext } from "@/agent/workflowRunner";
+import { getWorkflow } from "@/agent/workflows/index";
 import { callLLM } from "@/lib/llmClient";
-import type {
-  AgentState,
-  CustomerMessage,
-  LeadScore,
-  Property,
-  TraceStep,
-} from "@/types/index";
+import type { AgentState, CustomerMessage, SearchResult, TraceStep } from "@/types/index";
 
 export interface Intent {
   intent_type:
@@ -31,13 +26,6 @@ interface SelfReviewResult {
   issues: string[];
   improved_draft: string;
 }
-
-type AvailabilityResult = {
-  status: Property["status"];
-  viewing_slots: string[];
-  message: string;
-  available: boolean;
-};
 
 const fallbackIntent: Intent = {
   intent_type: "general",
@@ -172,104 +160,20 @@ export async function runAgent(
         `Type: ${intent.intent_type} — ${intent.reasoning?.slice(0, 60) ?? ""}`,
       ),
     );
-    const plan = getPlan(intent.intent_type);
-
-    let matchedProperty: AgentState["matchedProperty"] = null;
-    let alternatives: AgentState["alternatives"] = [];
-    if (plan.needsPropertySearch) {
-      const searchListings = getTool("searchListings");
-      const searchResult = searchListings(intent);
-      matchedProperty = searchResult.primary;
-      alternatives = searchResult.alternatives;
-      onTrace(
-        createTraceStep(
-          "Property matched",
-          matchedProperty ? matchedProperty.title : "No match",
-        ),
-      );
-    } else {
-      onTrace(
-        createTraceStep(
-          "Property search",
-          "Skipped — not needed for this intent",
-        ),
-      );
-    }
-
-    let availability: AvailabilityResult = {
-      status: "available",
-      viewing_slots: [],
-      message: "N/A",
-      available: true,
-    };
-    if (plan.needsAvailabilityCheck && matchedProperty) {
-      const checkAvailability = getTool("checkAvailability");
-      const checkedAvailability = checkAvailability(matchedProperty.id);
-      availability = {
-        ...checkedAvailability,
-        available: checkedAvailability.status !== "let_agreed",
-      };
-      onTrace(
-        createTraceStep(
-          "Availability checked",
-          `Status: ${availability.status}`,
-        ),
-      );
-    } else {
-      onTrace(createTraceStep("Availability check", "Skipped"));
-    }
-
-    let leadScore: LeadScore | null = null;
-    if (plan.needsLeadScoring) {
-      const scoreLead = getTool("scoreLead");
-      leadScore = scoreLead(intent, message.text);
-      onTrace(
-        createTraceStep(
-          "Lead scored",
-          `${leadScore.score} — ${leadScore.signals.join(", ")}`,
-        ),
-      );
-    } else {
-      onTrace(createTraceStep("Lead scoring", "Skipped"));
-    }
-
-    let draft = "";
-    if (plan.needsDraft) {
-      const draftReply = getTool("draftReply");
-      const rawDraft = await draftReply(
-        message.text,
-        matchedProperty,
-        availability,
-      );
-      onTrace(createTraceStep("Draft reply generated", "Ready for approval"));
-
-      if (plan.needsSelfCritique) {
-        const review = await selfReviewDraft(
-          message.text,
-          matchedProperty,
-          rawDraft,
-        );
-        draft = review.approved ? rawDraft : review.improved_draft;
-        onTrace(
-          createTraceStep(
-            "Self-review",
-            review.approved
-              ? "Approved"
-              : `${review.issues.length} issue(s), auto-corrected`,
-          ),
-        );
-      } else {
-        draft = rawDraft;
-      }
-    }
+    const workflow = getWorkflow(intent.intent_type);
+    const initialCtx: RunnerContext = { message, intent };
+    const ctx = await runWorkflow(workflow, initialCtx, onTrace);
+    const searchResult = ctx.searchResult as SearchResult | undefined;
+    const draft = typeof ctx.draft === "string" ? ctx.draft : "";
+    const leadScore = (ctx.leadScore as AgentState["leadScore"] | undefined) ?? null;
 
     return {
       status: "pending",
       draft,
       trace: [],
       leadScore,
-      matchedProperty,
-      alternatives,
+      matchedProperty: searchResult?.primary ?? null,
+      alternatives: searchResult?.alternatives ?? [],
       followUpNote: null,
     };
   } catch (error) {
